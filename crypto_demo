@@ -1,0 +1,159 @@
+import base64
+import random
+import string
+
+class SimpleCryptography:
+    def __init__(self, key=""):
+        self.key = key
+
+    # ----- Caesar Cipher -----
+    def caesar_encrypt(self, plaintext, shift=3):
+        encrypted = ""
+        for char in plaintext:
+            if char.isalpha():
+                offset = 65 if char.isupper() else 97
+                encrypted += chr((ord(char) - offset + shift) % 26 + offset)
+            else:
+                encrypted += char
+        return encrypted
+
+    def caesar_decrypt(self, ciphertext, shift=3):
+        return self.caesar_encrypt(ciphertext, -shift)
+
+    # ----- XOR Cipher -----
+    def xor_encrypt(self, plaintext):
+        encrypted_bytes = bytearray()
+        for i in range(len(plaintext)):
+            encrypted_byte = ord(plaintext[i]) ^ ord(self.key[i % len(self.key)])
+            encrypted_bytes.append(encrypted_byte)
+        return base64.b64encode(encrypted_bytes).decode('utf-8')
+
+    def xor_decrypt(self, base64_ciphertext):
+        encrypted_bytes = base64.b64decode(base64_ciphertext)
+        decrypted = ""
+        for i in range(len(encrypted_bytes)):
+            decrypted += chr(encrypted_bytes[i] ^ ord(self.key[i % len(self.key)]))
+        return decrypted
+
+    # ----- Monoalphabetic Cipher -----
+    def mono_encrypt(self, plaintext, mapping):
+        result = ""
+        for char in plaintext:
+            if char.isalpha():
+                is_upper = char.isupper()
+                mapped_char = mapping[char.lower()]
+                result += mapped_char.upper() if is_upper else mapped_char
+            else:
+                result += char
+        return result
+
+    def mono_decrypt(self, ciphertext, mapping):
+        reverse_map = {v: k for k, v in mapping.items()}
+        result = ""
+        for char in ciphertext:
+            if char.isalpha():
+                is_upper = char.isupper()
+                mapped_char = reverse_map[char.lower()]
+                result += mapped_char.upper() if is_upper else mapped_char
+            else:
+                result += char
+        return result
+
+    def generate_mono_key(self):
+        letters = list(string.ascii_lowercase)
+        shuffled = letters[:]
+        random.shuffle(shuffled)
+        return dict(zip(letters, shuffled))
+
+    # ----- Polyalphabetic Cipher (Vigenère) -----
+    def poly_encrypt(self, plaintext, key):
+        key = key.lower()
+        encrypted = ""
+        key_index = 0
+        for char in plaintext:
+            if char.isalpha():
+                shift = ord(key[key_index % len(key)]) - ord('a')
+                offset = 65 if char.isupper() else 97
+                encrypted += chr((ord(char) - offset + shift) % 26 + offset)
+                key_index += 1
+            else:
+                encrypted += char
+        return encrypted
+
+    def poly_decrypt(self, ciphertext, key):
+        key = key.lower()
+        decrypted = ""
+        key_index = 0
+        for char in ciphertext:
+            if char.isalpha():
+                shift = ord(key[key_index % len(key)]) - ord('a')
+                offset = 65 if char.isupper() else 97
+                decrypted += chr((ord(char) - offset - shift) % 26 + offset)
+                key_index += 1
+            else:
+                decrypted += char
+        return decrypted
+
+
+# ==== Main Program ====
+if __name__ == "__main__":
+    print("=== Multi-Cipher Cryptography Tool ===")
+    print("Methods: caesar | xor | mono | poly")
+    method = input("Choose method: ").strip().lower()
+
+    crypto = SimpleCryptography()
+
+    if method == "caesar":
+        shift = int(input("Enter Caesar shift (e.g., 3): "))
+        action = input("Encrypt or Decrypt (e/d): ").strip().lower()
+        message = input("Enter your message: ")
+
+        if action == "e":
+            result = crypto.caesar_encrypt(message, shift)
+        else:
+            result = crypto.caesar_decrypt(message, shift)
+
+        print("Result:", result)
+
+    elif method == "xor":
+        key = input("Enter key for XOR cipher: ")
+        action = input("Encrypt or Decrypt (e/d): ").strip().lower()
+        message = input("Enter your message: ")
+        crypto = SimpleCryptography(key)
+
+        if action == "e":
+            result = crypto.xor_encrypt(message)
+        else:
+            result = crypto.xor_decrypt(message)
+
+        print("Result:", result)
+
+    elif method == "mono":
+        action = input("Encrypt or Decrypt (e/d): ").strip().lower()
+        message = input("Enter your message: ")
+
+        if action == "e":
+            mapping = crypto.generate_mono_key()
+            result = crypto.mono_encrypt(message, mapping)
+            print("Encrypted:", result)
+            print("Save this key for decryption:", mapping)
+        else:
+            mapping_input = input("Enter your monoalphabetic key mapping as a dict: ")
+            mapping = eval(mapping_input)  # You can make this safer with JSON
+            result = crypto.mono_decrypt(message, mapping)
+            print("Decrypted:", result)
+
+    elif method == "poly":
+        key = input("Enter keyword for polyalphabetic (Vigenère) cipher: ")
+        action = input("Encrypt or Decrypt (e/d): ").strip().lower()
+        message = input("Enter your message: ")
+
+        if action == "e":
+            result = crypto.poly_encrypt(message, key)
+        else:
+            result = crypto.poly_decrypt(message, key)
+
+        print("Result:", result)
+
+    else:
+        print("Invalid method. Please choose from caesar, xor, mono, or poly.")
